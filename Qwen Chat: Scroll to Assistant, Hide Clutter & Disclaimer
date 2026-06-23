@@ -1,0 +1,119 @@
+// ==UserScript==
+// @name         Qwen Chat: Scroll to Assistant, Hide Clutter & Disclaimer
+// @namespace    http://tampermonkey.net/
+// @version      1.4
+// @description  Кнопка прокрутки к началу ответа ИИ + скрытие подписи "Содержимое, созданное ИИ, может быть неточным." на chat.qwen.ai
+// @match        https://chat.qwen.ai/*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // ========== 1. СКРЫВАЕМ НЕЖЕЛАТЕЛЬНЫЕ БЛОКИ ==========
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Скрываем подпись «Содержимое, созданное ИИ, может быть неточным.» */
+        .chat-container-statement {
+            display: none !important;
+        }
+        /* Дополнительная страховка: если класс изменится, можно добавить сюда */
+    `;
+    document.head.appendChild(style);
+
+    // ========== 2. ПОИСК ПОСЛЕДНЕГО СООБЩЕНИЯ ==========
+    const SELECTORS = [
+        '.qwen-chat-message.qwen-chat-message-assistant',
+        '[class*="qwen-chat-message-assistant"]',
+        '.chat-response-message',
+        '[role="article"]'
+    ];
+
+    function getLastAssistantMessage() {
+        for (const selector of SELECTORS) {
+            const elements = document.querySelectorAll(selector);
+            if (elements.length > 0) {
+                return elements[elements.length - 1];
+            }
+        }
+        return null;
+    }
+
+    // ========== 3. КНОПКА ==========
+    const btn = document.createElement('button');
+    btn.textContent = 'К началу ответа';        // ← Можете изменить текст кнопки
+    btn.title = 'Прокрутить к началу последнего ответа ИИ';
+    btn.style.cssText = `
+        position: fixed;
+        bottom: 28px;                          /* ← Отступ снизу (можно менять) */
+        right: 28px;                           /* ← Отступ справа (можно менять) */
+        z-index: 10000;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* ← Цвета градиента */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+        transition: all 0.2s ease;
+        backdrop-filter: blur(6px);
+    `;
+
+    btn.onmouseenter = () => {
+        btn.style.transform = 'translateY(-2px)';
+        btn.style.boxShadow = '0 6px 18px rgba(102, 126, 234, 0.5)';
+    };
+    btn.onmouseleave = () => {
+        btn.style.transform = 'translateY(0)';
+        btn.style.boxShadow = '0 4px 14px rgba(102, 126, 234, 0.35)';
+    };
+
+    btn.onclick = () => {
+        const target = getLastAssistantMessage();
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Подсветка верхней границы
+            const originalBorderStyle = target.style.borderTop;
+            const originalTransition = target.style.transition;
+            target.style.transition = 'border-top 0.2s ease';
+            target.style.borderTop = '3px solid #667eea';   // ← Цвет подсветки
+            setTimeout(() => {
+                target.style.borderTop = originalBorderStyle;
+                target.style.transition = originalTransition;
+            }, 1500);
+        } else {
+            console.warn('[Qwen Scroll] Assistant message not found');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    // ========== 4. ДОБАВЛЕНИЕ ==========
+    function initButton() {
+        if (document.body) {
+            document.body.appendChild(btn);
+        } else {
+            setTimeout(initButton, 100);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initButton);
+    } else {
+        initButton();
+    }
+
+    // ========== 5. ПОДДЕРЖКА SPA ==========
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+        const url = location.href;
+        if (url !== lastUrl) {
+            lastUrl = url;
+            if (!document.body.contains(btn)) {
+                initButton();
+            }
+        }
+    }).observe(document, { subtree: true, childList: true });
+})();
