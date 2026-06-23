@@ -1,0 +1,183 @@
+// ==UserScript==
+// @name         ChatGPT: Scroll to Assistant, Hide Reasoning & Follow-ups
+// @namespace    http://tampermonkey.net/
+// @version      1.5
+// @description  Кнопка прокрутки к началу ответа ИИ + скрытие блоков Reasoning, предложений следующих шагов, дисклеймера и кнопки "Принять предложение" на chatgpt.com
+// @match        https://chatgpt.com/*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // ========== 1. СКРЫВАЕМ НЕЖЕЛАТЕЛЬНЫЕ БЛОКИ (CSS) ==========
+    const style = document.createElement('style');
+    style.textContent = `
+        /* 1. Скрываем блоки "Reasoning" (цепочки мыслей) */
+        .reasoning,
+        .model-reasoning,
+        .thought,
+        .chain-of-thought,
+        [data-reasoning="true"],
+        [class*="reasoning"],
+        [class*="thought"] {
+            display: none !important;
+        }
+        .thinking-indicator,
+        .model-thinking {
+            display: none !important;
+        }
+
+        /* 2. Скрываем блоки с предложениями следующих шагов (Follow-up suggestions) */
+        p:has(+ ul[data-is-last-node][data-is-only-node]) {
+            display: none !important;
+        }
+        ul[data-is-last-node][data-is-only-node] {
+            display: none !important;
+        }
+        ul:has(li span.entity-underline) {
+            display: none !important;
+        }
+        p:has(span:contains("следующим шагом")) {
+            display: none !important;
+        }
+        .follow-up,
+        .suggestion,
+        .suggested-actions {
+            display: none !important;
+        }
+
+        /* 3. Скрываем дисклеймер «ChatGPT может допускать ошибки...» */
+        .text-caption-regular {
+            display: none !important;
+        }
+        /* Дополнительная страховка: если класс поменяется */
+        [class*="text-token-text-tertiary"] .text-caption-regular {
+            display: none !important;
+        }
+
+        /* 4. Скрываем блок с кнопкой «Принять предложение» */
+        div.mx-3\\.5.mt-1.mb-2:has(button[aria-label="Принять предложение"]) {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // ========== 2. ДИНАМИЧЕСКОЕ СКРЫТИЕ (JS — только для предложений) ==========
+    function hideUnwantedElements() {
+        // Скрываем предложения «следующих шагов» (по структуре)
+        document.querySelectorAll('ul[data-is-last-node][data-is-only-node]').forEach(el => {
+            el.style.display = 'none';
+        });
+        document.querySelectorAll('p:has(+ ul[data-is-last-node][data-is-only-node])').forEach(el => {
+            el.style.display = 'none';
+        });
+        document.querySelectorAll('p').forEach(el => {
+            if (el.textContent.includes('следующим шагом')) {
+                const next = el.nextElementSibling;
+                if (next && next.tagName === 'UL' && next.querySelector('span.entity-underline')) {
+                    el.style.display = 'none';
+                    next.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    hideUnwantedElements();
+
+    const observer = new MutationObserver(() => {
+        hideUnwantedElements();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // ========== 3. ПОИСК ПОСЛЕДНЕГО СООБЩЕНИЯ АССИСТЕНТА ==========
+    function getLastAssistantMessage() {
+        const messages = document.querySelectorAll('[data-message-author-role="assistant"]');
+        if (messages.length > 0) {
+            return messages[messages.length - 1];
+        }
+        const turns = document.querySelectorAll('[data-turn="assistant"]');
+        if (turns.length > 0) {
+            return turns[turns.length - 1];
+        }
+        return null;
+    }
+
+    // ========== 4. СОЗДАНИЕ КНОПКИ (единый стиль) ==========
+    const btn = document.createElement('button');
+    btn.textContent = 'К началу ответа';        // ← Можете изменить текст кнопки
+    btn.title = 'Прокрутить к началу последнего ответа ИИ';
+    btn.style.cssText = `
+        position: fixed;
+        bottom: 28px;                          /* ← Отступ снизу (можно менять) */
+        right: 28px;                           /* ← Отступ справа (можно менять) */
+        z-index: 10000;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* ← Цвета градиента */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+        transition: all 0.2s ease;
+        backdrop-filter: blur(6px);
+    `;
+
+    btn.onmouseenter = () => {
+        btn.style.transform = 'translateY(-2px)';
+        btn.style.boxShadow = '0 6px 18px rgba(102, 126, 234, 0.5)';
+    };
+    btn.onmouseleave = () => {
+        btn.style.transform = 'translateY(0)';
+        btn.style.boxShadow = '0 4px 14px rgba(102, 126, 234, 0.35)';
+    };
+
+    btn.onclick = () => {
+        const target = getLastAssistantMessage();
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Подсветка верхней границы
+            const origBorder = target.style.borderTop;
+            const origTrans = target.style.transition;
+            target.style.transition = 'border-top 0.2s ease';
+            target.style.borderTop = '3px solid #667eea';   // ← Цвет подсветки
+            setTimeout(() => {
+                target.style.borderTop = origBorder;
+                target.style.transition = origTrans;
+            }, 1500);
+        } else {
+            console.warn('[ChatGPT Scroll] Assistant message not found');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    // ========== 5. ДОБАВЛЕНИЕ КНОПКИ В DOM ==========
+    function initButton() {
+        if (document.body) {
+            document.body.appendChild(btn);
+        } else {
+            setTimeout(initButton, 100);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initButton);
+    } else {
+        initButton();
+    }
+
+    // ========== 6. ПОДДЕРЖКА НАВИГАЦИИ В SPA ==========
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+        const url = location.href;
+        if (url !== lastUrl) {
+            lastUrl = url;
+            if (!document.body.contains(btn)) {
+                initButton();
+            }
+        }
+    }).observe(document, { subtree: true, childList: true });
+})();
