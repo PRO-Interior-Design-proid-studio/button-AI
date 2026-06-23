@@ -1,0 +1,133 @@
+// ==UserScript==
+// @name         Grok: Scroll to Assistant Response Start & Hide Follow-ups
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Кнопка прокрутки к началу последнего ответа ИИ + скрытие предложений следующих вопросов на grok.com
+// @match        https://grok.com/*
+// @match        https://chat.grok.com/*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // ========== 1. ФУНКЦИЯ СКРЫТИЯ ВОПРОСОВ ==========
+    function hideFollowUpQuestions() {
+        // Ищем контейнер с вопросами по структуре
+        const containers = document.querySelectorAll('div.flex.flex-col.gap-1.mt-2.items-start.w-full');
+        for (const container of containers) {
+            // Проверяем, есть ли внутри кнопки с текстом вопросов
+            const buttons = container.querySelectorAll('button');
+            if (buttons.length > 0) {
+                // Проверяем, что это блок с вопросами (есть иконка corner-down-right)
+                const hasCornerIcon = container.querySelector('svg.lucide-corner-down-right');
+                if (hasCornerIcon) {
+                    container.style.display = 'none';
+                }
+            }
+        }
+    }
+
+    // Запускаем при загрузке
+    hideFollowUpQuestions();
+
+    // Наблюдаем за изменениями DOM
+    const observer = new MutationObserver(() => {
+        hideFollowUpQuestions();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // ========== 2. ПОИСК ПОСЛЕДНЕГО СООБЩЕНИЯ ==========
+    function getLastAssistantMessage() {
+        // Ищем контейнер с ответом
+        const containers = document.querySelectorAll('.response-content-markdown');
+        if (containers.length > 0) {
+            // Берём последний
+            return containers[containers.length - 1];
+        }
+        // Запасной вариант: ищем markdown блок
+        const markdownBlocks = document.querySelectorAll('.markdown');
+        if (markdownBlocks.length > 0) {
+            return markdownBlocks[markdownBlocks.length - 1];
+        }
+        return null;
+    }
+
+    // ========== 3. КНОПКА ==========
+    const btn = document.createElement('button');
+    btn.textContent = 'К началу ответа';        // ← Меняйте текст
+    btn.title = 'Прокрутить к началу последнего ответа ИИ';
+    btn.style.cssText = `
+        position: fixed;
+        bottom: 28px;                          /* ← Отступ снизу */
+        right: 28px;                           /* ← Отступ справа */
+        z-index: 10000;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* ← Цвета */
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+        transition: all 0.2s ease;
+        backdrop-filter: blur(6px);
+    `;
+
+    btn.onmouseenter = () => {
+        btn.style.transform = 'translateY(-2px)';
+        btn.style.boxShadow = '0 6px 18px rgba(102, 126, 234, 0.5)';
+    };
+    btn.onmouseleave = () => {
+        btn.style.transform = 'translateY(0)';
+        btn.style.boxShadow = '0 4px 14px rgba(102, 126, 234, 0.35)';
+    };
+
+    btn.onclick = () => {
+        const target = getLastAssistantMessage();
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Подсветка верхней границы
+            const origBorder = target.style.borderTop;
+            const origTrans = target.style.transition;
+            target.style.transition = 'border-top 0.2s ease';
+            target.style.borderTop = '3px solid #667eea';
+            setTimeout(() => {
+                target.style.borderTop = origBorder;
+                target.style.transition = origTrans;
+            }, 1500);
+        } else {
+            console.warn('[Grok Scroll] Assistant message not found');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    // ========== 4. ДОБАВЛЕНИЕ КНОПКИ ==========
+    function initButton() {
+        if (document.body) {
+            document.body.appendChild(btn);
+        } else {
+            setTimeout(initButton, 100);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initButton);
+    } else {
+        initButton();
+    }
+
+    // ========== 5. ПОДДЕРЖКА НАВИГАЦИИ В SPA ==========
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+        const url = location.href;
+        if (url !== lastUrl) {
+            lastUrl = url;
+            if (!document.body.contains(btn)) {
+                initButton();
+            }
+        }
+    }).observe(document, { subtree: true, childList: true });
+})();
