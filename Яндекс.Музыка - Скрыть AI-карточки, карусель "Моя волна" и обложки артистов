@@ -1,0 +1,73 @@
+// ==UserScript==
+// @name         Яндекс.Музыка - Скрыть AI-карточки, карусель "Моя волна" и обложки артистов
+// @namespace    http://tampermonkey.net/
+// @version      4.0
+// @description  Скрывает WordsCard с бейджем AI, блок рекомендаций (Wheel) и блоки VibePage_artistCover
+// @author       You
+// @match        *://music.yandex.ru/*
+// @match        *://*.yandex.ru/*
+// @match        *://music.yandex.com/*
+// @match        *://*.yandex.com/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // 1. Скрываем все карточки WordsCard (с иконкой AI)
+    function hideWordsCards() {
+        const containers = document.querySelectorAll('[class*="VibePage_words"]');
+        let found = false;
+        for (let container of containers) {
+            const cards = container.querySelectorAll('div[role="button"][aria-haspopup="dialog"]');
+            for (let card of cards) {
+                card.style.display = 'none';
+                found = true;
+            }
+        }
+        return found;
+    }
+
+    // 2. Скрываем карусель "Моя волна" (Wheel)
+    function hideWheel() {
+        const wheels = document.querySelectorAll('[class*="VibePage_wheel"], section.swiper.WheelMobile_root__VUNd_');
+        let found = false;
+        for (let wheel of wheels) {
+            if (wheel.querySelector('.swiper-wrapper')) {
+                wheel.style.display = 'none';
+                found = true;
+            }
+        }
+        return found;
+    }
+
+    // 3. Скрываем все блоки с обложкой артиста (VibePage_artistCover)
+    function hideArtistCovers() {
+        const covers = document.querySelectorAll('[class*="VibePage_artistCover"]');
+        let found = false;
+        for (let cover of covers) {
+            // Скрываем сам элемент (обычно это div, содержащий ссылку и картинку)
+            cover.style.display = 'none';
+            found = true;
+        }
+        return found;
+    }
+
+    // Запускаем все функции
+    function hideAll() {
+        const cardsHidden = hideWordsCards();
+        const wheelHidden = hideWheel();
+        const coversHidden = hideArtistCovers();
+        return cardsHidden || wheelHidden || coversHidden;
+    }
+
+    // Пробуем сразу
+    if (!hideAll()) {
+        // Наблюдаем за изменениями в DOM
+        const observer = new MutationObserver(() => {
+            hideAll(); // скрываем всё, что появится
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+})();
