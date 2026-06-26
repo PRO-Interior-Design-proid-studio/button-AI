@@ -1,0 +1,111 @@
+// ==UserScript==
+// @name         GigaChat: Scroll to Assistant Response & Hide Disclaimer
+// @namespace    http://tampermonkey.net/
+// @version      1.2
+// @description  Кнопка прокрутки к началу ответа + скрытие дисклеймера на giga.chat
+// @match        https://giga.chat/*
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Скрываем дисклеймер — ищем элемент, содержащий текст дисклеймера, и скрываем только его
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Скрываем дисклеймер по классу (часть класса) */
+        [class*="ChatView-styled__Footnote"] {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Поиск последнего ответа ассистента
+    function getLastAssistantMessage() {
+        const messages = document.querySelectorAll('[data-da_message_id]');
+        if (messages.length > 0) {
+            return messages[messages.length - 1];
+        }
+        const containers = document.querySelectorAll('[translate="no"]');
+        if (containers.length > 0) {
+            return containers[containers.length - 1];
+        }
+        return null;
+    }
+
+    // Создание кнопки
+    const btn = document.createElement('button');
+    btn.textContent = 'К началу ответа';
+    btn.title = 'Прокрутить к началу последнего ответа GigaChat';
+    btn.style.cssText = `
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        z-index: 10000;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+        transition: all 0.2s ease;
+        backdrop-filter: blur(6px);
+    `;
+
+    btn.onmouseenter = () => {
+        btn.style.transform = 'translateY(-2px)';
+        btn.style.boxShadow = '0 6px 18px rgba(102, 126, 234, 0.5)';
+    };
+    btn.onmouseleave = () => {
+        btn.style.transform = 'translateY(0)';
+        btn.style.boxShadow = '0 4px 14px rgba(102, 126, 234, 0.35)';
+    };
+
+    btn.onclick = () => {
+        const target = getLastAssistantMessage();
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const origBorder = target.style.borderTop;
+            const origTrans = target.style.transition;
+            target.style.transition = 'border-top 0.2s ease';
+            target.style.borderTop = '3px solid #667eea';
+            setTimeout(() => {
+                target.style.borderTop = origBorder;
+                target.style.transition = origTrans;
+            }, 1500);
+        } else {
+            console.warn('[GigaChat Scroll] Assistant message not found');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    function initButton() {
+        if (document.body) {
+            document.body.appendChild(btn);
+        } else {
+            setTimeout(initButton, 100);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initButton);
+    } else {
+        initButton();
+    }
+
+    // Поддержка SPA
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+        const url = location.href;
+        if (url !== lastUrl) {
+            lastUrl = url;
+            if (!document.body.contains(btn)) {
+                initButton();
+            }
+        }
+    }).observe(document, { subtree: true, childList: true });
+})();
