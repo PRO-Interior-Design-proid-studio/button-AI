@@ -1,3 +1,4 @@
 ! Title: My Adguard filters
+! https://raw.githubusercontent.com/PRO-Interior-Design-proid-studio/button-AI/refs/heads/main/Adguard.txt
 
 kinopoisk.ru##[data-test-id="movie-list-item"]:has([class*="releaseDate"])
