@@ -1,4 +1,15 @@
 ! Title: My Adguard filters
 ! https://raw.githubusercontent.com/PRO-Interior-Design-proid-studio/button-AI/refs/heads/main/Adguard.txt
 
+! Скрываем билеты невышедших фильмов
 kinopoisk.ru##[data-test-id="movie-list-item"]:has([class*="releaseDate"])
+
+! Скрываем карточки с бейджем AI (WordsCard)
+music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_words"] div[role="button"][aria-haspopup="dialog"]
+
+! Скрываем карусель "Моя волна" (Wheel)
+music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_wheel"]
+music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="WheelMobile_root"]
+
+! Скрываем блоки с обложками артистов (VibePage_artistCover)
+music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_artistCover"]
