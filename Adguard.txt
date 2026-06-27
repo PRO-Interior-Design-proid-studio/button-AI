@@ -1,0 +1,3 @@
+! Title: My Adguard filters
+
+kinopoisk.ru##[data-test-id="movie-list-item"]:has([class*="releaseDate"])
