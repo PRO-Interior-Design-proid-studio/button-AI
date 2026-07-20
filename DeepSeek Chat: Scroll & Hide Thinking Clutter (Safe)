@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         DeepSeek Chat: Scroll, Hide Clutter & Collapse + Token Counter (Event-based)
+// @name         DeepSeek Chat: Scroll, Collapse, Hide Clutter & Token Counter
 // @namespace    http://tampermonkey.net/
 // @version      5.9
-// @description  Кнопка прокрутки, скрытие мусора, сворачивание блоков >3 строк, счётчик токенов (обновление по событиям)
+// @description  Кнопка прокрутки, сворачивание блоков >3 строк, скрытие мусора, счётчик токенов (обновление по событиям)
 // @match        https://chat.deepseek.com/*
 // @grant        none
 // @run-at       document-idle
@@ -11,40 +11,34 @@
 (function() {
     'use strict';
 
-    // ===== 1. СТИЛИ (как в 5.8) =====
+    // ===== СТИЛИ =====
     const style = document.createElement('style');
     style.textContent = `
-        /* Скрываем мусор */
         ._5ab5d64, ._60aa7fb, .e4c3fd02, ._8f7678d, .c2b72bb8,
         .ds-think-content, ._0fcaa63,
-        [class*="disclaimer"], [class*="warning"] {
-            display: none !important;
-        }
+        [class*="disclaimer"], [class*="warning"] { display: none !important; }
 
-        /* Сворачивание кода */
         .code-collapsible pre {
             max-height: 4.5em;
             overflow: hidden;
             transition: max-height 0.3s ease;
         }
-        .code-collapsible.expanded pre {
-            max-height: none;
-        }
+        .code-collapsible.expanded pre { max-height: none; }
+
         .question-collapsible .fbb737a4 {
             max-height: 4.5em;
             overflow: hidden;
             transition: max-height 0.3s ease;
             position: relative;
         }
-        .question-collapsible.expanded .fbb737a4 {
-            max-height: none;
-        }
+        .question-collapsible.expanded .fbb737a4 { max-height: none; }
+
         .collapse-toggle {
             position: absolute;
             bottom: 8px;
             right: 8px;
             z-index: 5;
-            background: rgba(20, 20, 25, 0.85);
+            background: rgba(20,20,25,0.85);
             backdrop-filter: blur(4px);
             border: 1px solid rgba(255,255,255,0.15);
             padding: 2px 10px;
@@ -60,20 +54,15 @@
             user-select: none;
             pointer-events: auto;
         }
-        .collapse-toggle:hover {
-            background: rgba(40,40,50,0.9);
-        }
+        .collapse-toggle:hover { background: rgba(40,40,50,0.9); }
         .collapse-toggle svg {
             width: 14px;
             height: 14px;
             fill: currentColor;
             transition: transform 0.3s;
         }
-        .expanded .collapse-toggle svg {
-            transform: rotate(180deg);
-        }
+        .expanded .collapse-toggle svg { transform: rotate(180deg); }
 
-        /* Индикатор токенов */
         #token-indicator {
             position: fixed;
             bottom: 82px;
@@ -87,21 +76,24 @@
             padding: 4px 12px;
             border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.08);
-            font-family: inherit;
-            pointer-events: auto;
             cursor: pointer;
             transition: color 0.2s;
             user-select: none;
         }
-        #token-indicator:hover {
-            color: #eee;
-        }
+        #token-indicator:hover { color: #eee; }
         #token-indicator.warning { color: #f0ad4e; }
         #token-indicator.critical { color: #d9534f; }
     `;
     document.head.appendChild(style);
 
-    // ===== 2. СЧЁТЧИК ТОКЕНОВ =====
+    // ===== ПЕРЕМЕННЫЕ =====
+    let isScrolling = false;
+    let scrollTimeout = null;
+    let pendingUpdate = false;
+    let mutationTimer = null;
+    let tokenIndicator = null;
+
+    // ===== СЧЁТЧИК ТОКЕНОВ =====
     const TOKEN_LIMIT = 64000;
     const USER_MESSAGE_SELECTOR = 'div[data-um-id]';
     const AI_MARKDOWN_SELECTOR = 'div.ds-markdown';
@@ -113,9 +105,7 @@
             const userMessages = document.querySelectorAll(
                 `${USER_MESSAGE_SELECTOR} > div.ds-message > div:first-child`
             );
-            userMessages.forEach(div => {
-                text += div.innerText + '\n';
-            });
+            userMessages.forEach(div => { text += div.innerText + '\n'; });
             const aiBlocks = document.querySelectorAll(AI_MARKDOWN_SELECTOR);
             aiBlocks.forEach(div => {
                 if (!div.closest(AI_THOUGHT_SELECTOR)) {
@@ -127,19 +117,12 @@
     }
 
     function calculateTokens(text) {
-        const latinChars    = (text.match(/[a-zA-Z0-9\s.,!?;:'"(){}\[\]]/g) || []).length;
-        const cyrillicChars = (text.match(/[а-яА-ЯёЁ]/g) || []).length;
-        const chineseChars  = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-        const otherChars    = text.length - latinChars - cyrillicChars - chineseChars;
-        return Math.ceil(
-            latinChars    * 0.25 +
-            cyrillicChars * 0.55 +
-            chineseChars  * 0.65 +
-            otherChars    * 0.4
-        );
+        const latin = (text.match(/[a-zA-Z0-9\s.,!?;:'"(){}\[\]]/g) || []).length;
+        const cyrillic = (text.match(/[а-яА-ЯёЁ]/g) || []).length;
+        const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+        const other = text.length - latin - cyrillic - chinese;
+        return Math.ceil(latin * 0.25 + cyrillic * 0.55 + chinese * 0.65 + other * 0.4);
     }
-
-    let tokenIndicator = null;
 
     function updateTokenIndicator() {
         if (!tokenIndicator) return;
@@ -149,17 +132,181 @@
             const remaining = Math.max(0, TOKEN_LIMIT - used);
             tokenIndicator.textContent = `Осталось: ${remaining.toLocaleString()}`;
             tokenIndicator.classList.remove('warning', 'critical');
-            if (remaining < 1000) {
-                tokenIndicator.classList.add('critical');
-            } else if (remaining < 5000) {
-                tokenIndicator.classList.add('warning');
-            }
+            if (remaining < 1000) tokenIndicator.classList.add('critical');
+            else if (remaining < 5000) tokenIndicator.classList.add('warning');
         } catch (e) {}
     }
 
-    // ===== 3. СОБЫТИЙНОЕ ОБНОВЛЕНИЕ =====
+    // ===== СКРЫТИЕ АВАТАРА =====
+    function hideUserBlock() {
+        const elements = document.querySelectorAll('div, span, p');
+        let target = null;
+        for (const el of elements) {
+            if (el.textContent.trim() === 'Artem Andreevich') {
+                let parent = el.closest('div');
+                while (parent && parent !== document.body) {
+                    if (parent.querySelector('img') && parent.textContent.includes('Artem Andreevich')) {
+                        target = parent;
+                        break;
+                    }
+                    parent = parent.parentElement;
+                }
+                break;
+            }
+        }
+        if (target) target.style.display = 'none';
+    }
+
+    // ===== СВОРАЧИВАНИЕ БЛОКОВ =====
+    function processBlock(block, type) {
+        if (block.dataset.collapseProcessed === 'true') {
+            const toggle = block.querySelector('.collapse-toggle');
+            if (toggle) {
+                const expanded = block.classList.contains('expanded');
+                const span = toggle.querySelector('span');
+                const svg = toggle.querySelector('svg');
+                if (span) span.textContent = expanded ? 'Свернуть' : 'Развернуть';
+                if (svg) {
+                    svg.innerHTML = expanded
+                        ? '<path d="M8 5l-5 5 1.5 1.5L8 8l3.5 3.5L13 10z"/>'
+                        : '<path d="M8 11L3 6l1.5-1.5L8 8l3.5-3.5L13 6z"/>';
+                }
+            }
+            return;
+        }
+
+        let content, pre;
+        if (type === 'code') {
+            pre = block.querySelector('pre');
+            if (!pre) return;
+        } else {
+            content = block.querySelector('.fbb737a4');
+            if (!content) return;
+        }
+
+        let fullHeight;
+        if (type === 'code') {
+            const orig = pre.style.maxHeight;
+            pre.style.maxHeight = 'none';
+            fullHeight = pre.scrollHeight;
+            pre.style.maxHeight = orig || '';
+        } else {
+            const orig = content.style.maxHeight;
+            content.style.maxHeight = 'none';
+            fullHeight = content.scrollHeight;
+            content.style.maxHeight = orig || '';
+        }
+
+        const lineHeight = parseFloat(getComputedStyle(type === 'code' ? pre : content).lineHeight) || 20;
+        const threshold = lineHeight * 3 + 8;
+
+        if (fullHeight <= threshold) {
+            block.classList.add('no-collapse');
+            block.dataset.collapseProcessed = 'true';
+            return;
+        }
+
+        if (type === 'code') {
+            block.classList.add('code-collapsible');
+        } else {
+            block.classList.add('question-collapsible');
+            content.style.position = 'relative';
+        }
+
+        const toggle = document.createElement('button');
+        toggle.className = 'collapse-toggle';
+        const expanded = block.classList.contains('expanded');
+        toggle.innerHTML = `
+            <span>${expanded ? 'Свернуть' : 'Развернуть'}</span>
+            <svg viewBox="0 0 16 16" fill="currentColor">
+                <path d="${expanded ? 'M8 5l-5 5 1.5 1.5L8 8l3.5 3.5L13 10z' : 'M8 11L3 6l1.5-1.5L8 8l3.5-3.5L13 6z'}"/>
+            </svg>
+        `;
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const now = block.classList.toggle('expanded');
+            if (now) block.classList.add('user-expanded');
+            else block.classList.remove('user-expanded');
+            const span = toggle.querySelector('span');
+            const svg = toggle.querySelector('svg');
+            if (now) {
+                span.textContent = 'Свернуть';
+                svg.innerHTML = '<path d="M8 5l-5 5 1.5 1.5L8 8l3.5 3.5L13 10z"/>';
+                if (type === 'code') pre.style.maxHeight = 'none';
+                else content.style.maxHeight = 'none';
+            } else {
+                span.textContent = 'Развернуть';
+                svg.innerHTML = '<path d="M8 11L3 6l1.5-1.5L8 8l3.5-3.5L13 6z"/>';
+                if (type === 'code') pre.style.maxHeight = '4.5em';
+                else content.style.maxHeight = '4.5em';
+            }
+        });
+
+        if (type === 'code') block.appendChild(toggle);
+        else content.appendChild(toggle);
+        block.dataset.collapseProcessed = 'true';
+    }
+
+    function applyCollapse() {
+        if (isScrolling) {
+            pendingUpdate = true;
+            return;
+        }
+        const scrollY = window.scrollY;
+        document.querySelectorAll('.md-code-block:not([data-collapse-processed])').forEach(b => processBlock(b, 'code'));
+        document.querySelectorAll('.ds-message:not([data-collapse-processed])').forEach(msg => {
+            if (!msg.querySelector('.ds-assistant-message-main-content') && !msg.querySelector('.ds-think-content')) {
+                processBlock(msg, 'question');
+            }
+        });
+        hideUserBlock();
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                if (Math.abs(window.scrollY - scrollY) > 3) {
+                    window.scrollTo({ top: scrollY, behavior: 'instant' });
+                }
+            });
+        });
+    }
+
+    // ===== СОБЫТИЯ =====
+    document.addEventListener('wheel', () => {
+        isScrolling = true;
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            isScrolling = false;
+            if (pendingUpdate) {
+                pendingUpdate = false;
+                applyCollapse();
+            }
+        }, 200);
+    }, { passive: true });
+
+    document.addEventListener('touchmove', () => {
+        isScrolling = true;
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            isScrolling = false;
+            if (pendingUpdate) {
+                pendingUpdate = false;
+                applyCollapse();
+            }
+        }, 200);
+    }, { passive: true });
+
+    // Мутации
+    const observer = new MutationObserver(() => {
+        clearTimeout(mutationTimer);
+        mutationTimer = setTimeout(() => {
+            applyCollapse();
+            mutationTimer = null;
+        }, 100);
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+    // Обновление токенов по событиям
     function setupAssistantObserver() {
-        const assistantObserver = new MutationObserver(() => {
+        const obs = new MutationObserver(() => {
             const newMessages = document.querySelectorAll('.ds-message:not([data-token-counted])');
             let hasNew = false;
             newMessages.forEach(msg => {
@@ -173,17 +320,15 @@
                 window._tokenUpdateTimeout = setTimeout(updateTokenIndicator, 800);
             }
         });
-        assistantObserver.observe(document.body, { childList: true, subtree: true });
+        obs.observe(document.body, { childList: true, subtree: true });
     }
 
     function setupSendObserver() {
-        const sendButton = document.querySelector('button[type="submit"]') ||
-                           document.querySelector('div[role="button"][aria-label="Send"]') ||
-                           document.querySelector('button:has(svg)');
-        if (sendButton) {
-            sendButton.addEventListener('click', () => {
-                setTimeout(updateTokenIndicator, 200);
-            });
+        const sendBtn = document.querySelector('button[type="submit"]') ||
+                         document.querySelector('div[role="button"][aria-label="Send"]') ||
+                         document.querySelector('button:has(svg)');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', () => setTimeout(updateTokenIndicator, 200));
         }
         const textarea = document.querySelector('textarea[placeholder*="Message"]');
         if (textarea) {
@@ -195,18 +340,104 @@
         }
     }
 
-    // ===== 4. ОСТАЛЬНАЯ ЛОГИКА (сворачивание, скрытие) =====
-    // (здесь всё то же, что в версии 5.8 — я не буду дублировать полный код,
-    //  но в финальном скрипте вы должны оставить все функции applyCollapse, processBlock, hideUserBlock и т.д.)
+    // ===== КНОПКА ПРОКРУТКИ =====
+    function getLastAssistantMessage() {
+        const messages = document.querySelectorAll('.ds-message');
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const msg = messages[i];
+            if (msg.querySelector('.ds-assistant-message-main-content') || msg.querySelector('.ds-think-content')) {
+                return msg;
+            }
+        }
+        return null;
+    }
 
-    // ===== 5. ЗАПУСК =====
+    tokenIndicator = document.createElement('div');
+    tokenIndicator.id = 'token-indicator';
+    tokenIndicator.textContent = 'Осталось: —';
+    tokenIndicator.title = 'Обновить';
+    tokenIndicator.addEventListener('click', updateTokenIndicator);
+    document.body.appendChild(tokenIndicator);
+
+    const btn = document.createElement('button');
+    btn.textContent = 'К началу ответа';
+    btn.title = 'Прокрутить к началу последнего ответа';
+    btn.style.cssText = `
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        z-index: 10000;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: 0 4px 14px rgba(102,126,234,0.35);
+        transition: all 0.2s ease;
+        backdrop-filter: blur(6px);
+        pointer-events: auto;
+    `;
+    btn.onmouseenter = () => {
+        btn.style.transform = 'translateY(-2px)';
+        btn.style.boxShadow = '0 6px 18px rgba(102,126,234,0.5)';
+    };
+    btn.onmouseleave = () => {
+        btn.style.transform = 'translateY(0)';
+        btn.style.boxShadow = '0 4px 14px rgba(102,126,234,0.35)';
+    };
+    btn.onclick = () => {
+        const target = getLastAssistantMessage();
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const orig = target.style.borderTop;
+            const origTrans = target.style.transition;
+            target.style.transition = 'border-top 0.2s ease';
+            target.style.borderTop = '3px solid #667eea';
+            setTimeout(() => {
+                target.style.borderTop = orig;
+                target.style.transition = origTrans;
+            }, 1500);
+        } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    function initButton() {
+        if (document.body) {
+            document.body.appendChild(btn);
+        } else {
+            setTimeout(initButton, 100);
+        }
+    }
+
+    // ===== ЗАПУСК =====
+    setTimeout(applyCollapse, 100);
+    window.addEventListener('load', () => setTimeout(applyCollapse, 100));
     setTimeout(() => {
         setupAssistantObserver();
         setupSendObserver();
-        updateTokenIndicator(); // первое обновление
-        // applyCollapse();      // уже вызвано раньше
+        updateTokenIndicator();
     }, 1000);
 
-    // ... остальное (кнопка, SPA-поддержка) остаётся без изменений
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initButton);
+    } else {
+        initButton();
+    }
 
+    // ===== SPA =====
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+        const url = location.href;
+        if (url !== lastUrl) {
+            lastUrl = url;
+            if (!document.body.contains(btn)) initButton();
+            if (!document.body.contains(tokenIndicator)) document.body.appendChild(tokenIndicator);
+            setTimeout(applyCollapse, 100);
+            setTimeout(updateTokenIndicator, 200);
+        }
+    }).observe(document, { subtree: true, childList: true });
 })();
