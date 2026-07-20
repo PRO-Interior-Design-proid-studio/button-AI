@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         DeepSeek Chat: Scroll, Collapse, Hide Clutter & Token Counter
+// @name         DeepSeek Chat: Scroll, Collapse & Hide Clutter
 // @namespace    http://tampermonkey.net/
-// @version      5.9
-// @description  Кнопка прокрутки, сворачивание блоков >3 строк, скрытие мусора, счётчик токенов (обновление по событиям)
+// @version      5.0
+// @description  Кнопка прокрутки, сворачивание блоков >3 строк, скрытие мусора и аватара
 // @match        https://chat.deepseek.com/*
 // @grant        none
 // @run-at       document-idle
@@ -62,27 +62,6 @@
             transition: transform 0.3s;
         }
         .expanded .collapse-toggle svg { transform: rotate(180deg); }
-
-        #token-indicator {
-            position: fixed;
-            bottom: 82px;
-            right: 28px;
-            z-index: 9999;
-            font-size: 13px;
-            font-weight: 500;
-            color: #aaa;
-            background: rgba(20,20,25,0.7);
-            backdrop-filter: blur(4px);
-            padding: 4px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.08);
-            cursor: pointer;
-            transition: color 0.2s;
-            user-select: none;
-        }
-        #token-indicator:hover { color: #eee; }
-        #token-indicator.warning { color: #f0ad4e; }
-        #token-indicator.critical { color: #d9534f; }
     `;
     document.head.appendChild(style);
 
@@ -91,51 +70,6 @@
     let scrollTimeout = null;
     let pendingUpdate = false;
     let mutationTimer = null;
-    let tokenIndicator = null;
-
-    // ===== СЧЁТЧИК ТОКЕНОВ =====
-    const TOKEN_LIMIT = 64000;
-    const USER_MESSAGE_SELECTOR = 'div[data-um-id]';
-    const AI_MARKDOWN_SELECTOR = 'div.ds-markdown';
-    const AI_THOUGHT_SELECTOR = '[class*="ds-think-content"]';
-
-    function getConversationText() {
-        let text = '';
-        try {
-            const userMessages = document.querySelectorAll(
-                `${USER_MESSAGE_SELECTOR} > div.ds-message > div:first-child`
-            );
-            userMessages.forEach(div => { text += div.innerText + '\n'; });
-            const aiBlocks = document.querySelectorAll(AI_MARKDOWN_SELECTOR);
-            aiBlocks.forEach(div => {
-                if (!div.closest(AI_THOUGHT_SELECTOR)) {
-                    text += div.innerText + '\n';
-                }
-            });
-        } catch (e) {}
-        return text;
-    }
-
-    function calculateTokens(text) {
-        const latin = (text.match(/[a-zA-Z0-9\s.,!?;:'"(){}\[\]]/g) || []).length;
-        const cyrillic = (text.match(/[а-яА-ЯёЁ]/g) || []).length;
-        const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-        const other = text.length - latin - cyrillic - chinese;
-        return Math.ceil(latin * 0.25 + cyrillic * 0.55 + chinese * 0.65 + other * 0.4);
-    }
-
-    function updateTokenIndicator() {
-        if (!tokenIndicator) return;
-        try {
-            const text = getConversationText();
-            const used = calculateTokens(text);
-            const remaining = Math.max(0, TOKEN_LIMIT - used);
-            tokenIndicator.textContent = `Осталось: ${remaining.toLocaleString()}`;
-            tokenIndicator.classList.remove('warning', 'critical');
-            if (remaining < 1000) tokenIndicator.classList.add('critical');
-            else if (remaining < 5000) tokenIndicator.classList.add('warning');
-        } catch (e) {}
-    }
 
     // ===== СКРЫТИЕ АВАТАРА =====
     function hideUserBlock() {
@@ -294,7 +228,6 @@
         }, 200);
     }, { passive: true });
 
-    // Мутации
     const observer = new MutationObserver(() => {
         clearTimeout(mutationTimer);
         mutationTimer = setTimeout(() => {
@@ -303,42 +236,6 @@
         }, 100);
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-
-    // Обновление токенов по событиям
-    function setupAssistantObserver() {
-        const obs = new MutationObserver(() => {
-            const newMessages = document.querySelectorAll('.ds-message:not([data-token-counted])');
-            let hasNew = false;
-            newMessages.forEach(msg => {
-                if (msg.querySelector('.ds-assistant-message-main-content')) {
-                    msg.dataset.tokenCounted = 'true';
-                    hasNew = true;
-                }
-            });
-            if (hasNew) {
-                clearTimeout(window._tokenUpdateTimeout);
-                window._tokenUpdateTimeout = setTimeout(updateTokenIndicator, 800);
-            }
-        });
-        obs.observe(document.body, { childList: true, subtree: true });
-    }
-
-    function setupSendObserver() {
-        const sendBtn = document.querySelector('button[type="submit"]') ||
-                         document.querySelector('div[role="button"][aria-label="Send"]') ||
-                         document.querySelector('button:has(svg)');
-        if (sendBtn) {
-            sendBtn.addEventListener('click', () => setTimeout(updateTokenIndicator, 200));
-        }
-        const textarea = document.querySelector('textarea[placeholder*="Message"]');
-        if (textarea) {
-            textarea.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    setTimeout(updateTokenIndicator, 200);
-                }
-            });
-        }
-    }
 
     // ===== КНОПКА ПРОКРУТКИ =====
     function getLastAssistantMessage() {
@@ -351,13 +248,6 @@
         }
         return null;
     }
-
-    tokenIndicator = document.createElement('div');
-    tokenIndicator.id = 'token-indicator';
-    tokenIndicator.textContent = 'Осталось: —';
-    tokenIndicator.title = 'Обновить';
-    tokenIndicator.addEventListener('click', updateTokenIndicator);
-    document.body.appendChild(tokenIndicator);
 
     const btn = document.createElement('button');
     btn.textContent = 'К началу ответа';
@@ -416,11 +306,6 @@
     // ===== ЗАПУСК =====
     setTimeout(applyCollapse, 100);
     window.addEventListener('load', () => setTimeout(applyCollapse, 100));
-    setTimeout(() => {
-        setupAssistantObserver();
-        setupSendObserver();
-        updateTokenIndicator();
-    }, 1000);
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initButton);
@@ -435,9 +320,7 @@
         if (url !== lastUrl) {
             lastUrl = url;
             if (!document.body.contains(btn)) initButton();
-            if (!document.body.contains(tokenIndicator)) document.body.appendChild(tokenIndicator);
             setTimeout(applyCollapse, 100);
-            setTimeout(updateTokenIndicator, 200);
         }
     }).observe(document, { subtree: true, childList: true });
 })();
