@@ -15,3 +15,7 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="WheelMobile_r
 music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_artistCover"]
 
 ! Скрываем блоки https://plusvibeapi.ru/dashboard/studio
+! Скрываем всё на /dashboard/studio, кроме самого блока Нейростудии
+! Правило оставляет [data-studio-root="true"], его предков и потомков.
+! Всё остальное (сайдбар кабинета, хедер, баннер инцидента, табы, футер, cookie-баннер) — скрывается.
+plusvibeapi.ru##body:has([data-studio-root="true"]) *:not([data-studio-root="true"]):not([data-studio-root="true"] *):not(:has([data-studio-root="true"]))
