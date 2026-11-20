@@ -22,6 +22,8 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 ! Скрываем блок «Продолжить» с вариантами продолжения
 192.168.3.14##div[class~="my-2.5"]:has([aria-label^="Продолжение:"])
 10.77.77.5##div[class~="my-2.5"]:has([aria-label^="Продолжение:"])
+192.168.3.14##div:has(> div.mt-4 > div > div > button[aria-label^="Продолжение:"])
+10.77.77.5##div:has(> div.mt-4 > div > div > button[aria-label^="Продолжение:"])
 
 
 
