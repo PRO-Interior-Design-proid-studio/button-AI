@@ -17,21 +17,20 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 
 ! Скрываем блоки Open WebUI
 
-! Основной — весь приветственный блок (аватар + название + «Предложено» + подсказки).
-! [class*="max-w-[58rem]"] — уникальный Tailwind-класс, у предков его нет, поэтому :has() матчит ровно 1 элемент.
-192.168.3.14##div[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
-10.77.77.5##div[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
+! Основной — только приветственный блок (element 0).
+! m-auto есть ТОЛЬКО у него; у чат-контейнера (element 1) — нет, у поля ввода (element 2) — mx-auto.
+192.168.3.14##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
+10.77.77.5##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
 
-! Fallback — если :has() вдруг не поддержан, скрываем части по отдельности.
-! Ограничены тем же контейнером, чтобы не задеть другие места интерфейса.
-192.168.3.14##h3#suggestions-heading
-192.168.3.14##[aria-labelledby="suggestions-heading"]
-192.168.3.14##div[class*="max-w-[58rem]"] button[aria-label*="Получить информацию"]
-192.168.3.14##div[class*="max-w-[58rem]"] > div.mt-2.mb-4
-10.77.77.5##h3#suggestions-heading
-10.77.77.5##[aria-labelledby="suggestions-heading"]
-10.77.77.5##div[class*="max-w-[58rem]"] button[aria-label*="Получить информацию"]
-10.77.77.5##div[class*="max-w-[58rem]"] > div.mt-2.mb-4
+! Fallback без :has() — те же части, но привязаны к m-auto-контейнеру
+192.168.3.14##div.m-auto[class*="max-w-[58rem]"] h3#suggestions-heading
+192.168.3.14##div.m-auto[class*="max-w-[58rem]"] [aria-labelledby="suggestions-heading"]
+192.168.3.14##div.m-auto[class*="max-w-[58rem]"] button[aria-label*="Получить информацию"]
+192.168.3.14##div.m-auto[class*="max-w-[58rem]"] > div.mt-2.mb-4
+10.77.77.5##div.m-auto[class*="max-w-[58rem]"] h3#suggestions-heading
+10.77.77.5##div.m-auto[class*="max-w-[58rem]"] [aria-labelledby="suggestions-heading"]
+10.77.77.5##div.m-auto[class*="max-w-[58rem]"] button[aria-label*="Получить информацию"]
+10.77.77.5##div.m-auto[class*="max-w-[58rem]"] > div.mt-2.mb-4
 
 
 ! ============================================
