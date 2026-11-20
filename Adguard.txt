@@ -28,6 +28,12 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 ! Разделители между вариантами
 192.168.3.14##div[class~="my-2.5"] hr
 10.77.77.5##div[class~="my-2.5"] hr
+! Скрываем placeholder и suggestion в поле ввода
+192.168.3.14##.tiptap p.is-empty
+10.77.77.5##.tiptap p.is-empty
+Или эквивалентно, через id:
+192.168.3.14###chat-input p.is-empty
+10.77.77.5###chat-input p.is-empty
 
 
 ! ============================================
