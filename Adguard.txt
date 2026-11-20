@@ -14,56 +14,46 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="WheelMobile_r
 ! Скрываем блоки с обложками артистов (VibePage_artistCover)
 music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_artistCover"]
 
+
+plusvibeapi.ru#$#body { outline: 5px solid red !important; }
+
 ! ============================================
 ! PlusVibeAPI — Нейростудия (/dashboard/studio)
 ! ============================================
 
-! 1. Скрываем всё на странице, кроме блока Нейростудии
+! 1. Скрываем всё, кроме блока студии и его предков/потомков
 plusvibeapi.ru##body:has([data-studio-root="true"]) *:not([data-studio-root="true"]):not([data-studio-root="true"] *):not(:has([data-studio-root="true"]))
 
 ! 2. Скрываем строку "Доступно: … · бонус …"
 plusvibeapi.ru##[data-studio-composer-balance="true"]
 
-! 3. Padding 0 у .dv2-content (перебиваем и @media, и .dv2-content)
-plusvibeapi.ru#$#body:has([data-studio-root="true"]) .dv2-content { padding: 0 !important; padding-top: 0 !important; padding-right: 0 !important; padding-bottom: 0 !important; padding-left: 0 !important; }
+! 3. Обнуляем паддинги у main (перебивает и .dv2-content, и @media)
+plusvibeapi.ru#$#main.dv2-content { padding: 0 !important; }
 
-! 4. Отключаем прокрутку фона
-plusvibeapi.ru#$#html:has([data-studio-root="true"]), body:has([data-studio-root="true"]) { overflow: hidden !important; }
+! 4. Отключаем прокрутку страницы
+plusvibeapi.ru#$#html, body { overflow: hidden !important; }
 
-! 5. Меняем местами: поле ввода выше строки выбора модели/провайдера
-plusvibeapi.ru#$#body:has([data-studio-root="true"]) [data-studio-composer-model-row="true"] { order: 0 !important; }
-plusvibeapi.ru#$#body:has([data-studio-root="true"]) div:has(> textarea) { order: -1 !important; }
+! 5. Меняем местами: поле ввода — выше, строка выбора модели — ниже
+plusvibeapi.ru#$#div.flex.shrink-0.gap-2.items-end { order: -1 !important; }
+plusvibeapi.ru#$#[data-studio-composer-model-row="true"] { order: 0 !important; }
 
-! 6. JS: провайдер :cxb, placeholder, снятие inline-padding
+! 6. Скрываем placeholder (на всех движках)
+plusvibeapi.ru#$#textarea::placeholder { color: transparent !important; opacity: 0 !important; }
+plusvibeapi.ru#$#textarea::-webkit-input-placeholder { color: transparent !important; opacity: 0 !important; }
+
+! 7. Провайдер :cxb — единственное, что чистым CSS не сделать (нужен #%#)
 plusvibeapi.ru#%#(() => {
-  const TARGET = 'deepseek-v4.1-flash-1017:cxb';
-  const SELECTOR = 'select[aria-label="Провайдер"]';
-  const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-
+  const T = 'deepseek-v4.1-flash-1017:cxb';
+  const S = 'select[aria-label="Провайдер"]';
+  const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
   const tick = () => {
-    // (1) Провайдер :cxb
-    const sel = document.querySelector(SELECTOR);
-    if (sel && sel.value !== TARGET) {
-      setter.call(sel, TARGET);
+    const sel = document.querySelector(S);
+    if (sel && sel.value !== T) {
+      set.call(sel, T);
       sel.dispatchEvent(new Event('input',  { bubbles: true }));
       sel.dispatchEvent(new Event('change', { bubbles: true }));
     }
-
-    // (2) Placeholder
-    const ta = document.querySelector('textarea[placeholder]');
-    if (ta) ta.removeAttribute('placeholder');
-
-    // (3) Снимаем inline-padding с main, если остался
-    const main = document.querySelector('main.pv-dashboard-content');
-    if (main && main.style.padding) {
-      main.style.removeProperty('padding');
-      main.style.removeProperty('padding-top');
-      main.style.removeProperty('padding-right');
-      main.style.removeProperty('padding-bottom');
-      main.style.removeProperty('padding-left');
-    }
   };
-
   tick();
   setInterval(tick, 1000);
 })();
