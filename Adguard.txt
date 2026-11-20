@@ -19,25 +19,13 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 ! m-auto есть ТОЛЬКО у него; у чат-контейнера (element 1) — нет, у поля ввода (element 2) — mx-auto.
 192.168.3.14##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
 10.77.77.5##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
-! Скрываем блок «Продолжить» с вариантами продолжения
-192.168.3.14##div[class~="my-2.5"]:has([aria-label^="Продолжение:"])
-10.77.77.5##div[class~="my-2.5"]:has([aria-label^="Продолжение:"])
-192.168.3.14##div:has(> div.mt-4 > div > div > button[aria-label^="Продолжение:"])
-10.77.77.5##div:has(> div.mt-4 > div > div > button[aria-label^="Продолжение:"])
-! Скрываем блок «Продолжить» — без двоеточия в значении
-192.168.3.14##div[class~="my-2.5"]:has([aria-label*="Продолжение"])
-10.77.77.5##div[class~="my-2.5"]:has([aria-label*="Продолжение"])
-! Скрываем блок «Продолжить» по классу контейнера
-192.168.3.14##[class~="my-2.5"]
-10.77.77.5##[class~="my-2.5"]
+
 ! Заголовок «Продолжить»
 192.168.3.14##div[class~="my-2.5"] > div.mt-4 > div.text-sm.font-normal
 10.77.77.5##div[class~="my-2.5"] > div.mt-4 > div.text-sm.font-normal
-
 ! Кнопки-варианты продолжения
 192.168.3.14##button[aria-label*="Продолжение"]
 10.77.77.5##button[aria-label*="Продолжение"]
-
 ! Разделители между вариантами
 192.168.3.14##div[class~="my-2.5"] hr
 10.77.77.5##div[class~="my-2.5"] hr
