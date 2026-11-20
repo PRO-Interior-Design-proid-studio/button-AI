@@ -13,3 +13,5 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="WheelMobile_r
 
 ! Скрываем блоки с обложками артистов (VibePage_artistCover)
 music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_artistCover"]
+
+! Скрываем блоки https://plusvibeapi.ru/dashboard/studio
