@@ -19,3 +19,29 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 ! Правило оставляет [data-studio-root="true"], его предков и потомков.
 ! Всё остальное (сайдбар кабинета, хедер, баннер инцидента, табы, футер, cookie-баннер) — скрывается.
 plusvibeapi.ru##body:has([data-studio-root="true"]) *:not([data-studio-root="true"]):not([data-studio-root="true"] *):not(:has([data-studio-root="true"]))
+
+! Убрать строку "Доступно: 37,92 ₽ · бонус 37,92 ₽"
+plusvibeapi.ru##[data-studio-composer-balance="true"]
+
+! Убрать прокрутку фона (страница не будет скроллиться)
+plusvibeapi.ru#$#html:has([data-studio-root="true"]), body:has([data-studio-root="true"]) { overflow: hidden !important; }
+
+! Убрать placeholder у textarea ввода сообщения
+plusvibeapi.ru#$#textarea::placeholder { color: transparent !important; }
+
+! Выбор провайдера :cxb по умолчанию
+plusvibeapi.ru#%#(() => {
+  const init = () => {
+    const sel = document.querySelector('select[aria-label="Провайдер"]');
+    if (sel && !sel.dataset.cxbSet) {
+      sel.dataset.cxbSet = '1';
+      sel.value = 'deepseek-v4.1-flash-1017:cxb';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
