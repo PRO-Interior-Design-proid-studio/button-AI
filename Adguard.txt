@@ -16,12 +16,12 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 
 
 ! Скрываем блоки Open WebUI
-
-! Основной — только приветственный блок (element 0).
 ! m-auto есть ТОЛЬКО у него; у чат-контейнера (element 1) — нет, у поля ввода (element 2) — mx-auto.
 192.168.3.14##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
 10.77.77.5##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
-
+! Скрываем блок «Продолжить» с вариантами продолжения
+192.168.3.14##div[class~="my-2.5"]:has([aria-label^="Продолжение:"])
+10.77.77.5##div[class~="my-2.5"]:has([aria-label^="Продолжение:"])
 
 
 
