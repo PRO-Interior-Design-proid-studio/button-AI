@@ -14,46 +14,26 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="WheelMobile_r
 ! Скрываем блоки с обложками артистов (VibePage_artistCover)
 music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_artistCover"]
 
-
-plusvibeapi.ru#$#body { outline: 5px solid red !important; }
-
 ! ============================================
 ! PlusVibeAPI — Нейростудия (/dashboard/studio)
 ! ============================================
+! PlusVibeAPI — Нейростудия (uBlock Origin)
 
-! 1. Скрываем всё, кроме блока студии и его предков/потомков
 plusvibeapi.ru##body:has([data-studio-root="true"]) *:not([data-studio-root="true"]):not([data-studio-root="true"] *):not(:has([data-studio-root="true"]))
-
-! 2. Скрываем строку "Доступно: … · бонус …"
 plusvibeapi.ru##[data-studio-composer-balance="true"]
 
-! 3. Обнуляем паддинги у main (перебивает и .dv2-content, и @media)
-plusvibeapi.ru#$#main.dv2-content { padding: 0 !important; }
+! Padding 0 у main (перебивает .dv2-content и @media)
+plusvibeapi.ru##main.dv2-content:style(padding: 0 !important)
 
-! 4. Отключаем прокрутку страницы
-plusvibeapi.ru#$#html, body { overflow: hidden !important; }
+! Отключаем прокрутку фона
+plusvibeapi.ru##html:has([data-studio-root="true"]):style(overflow: hidden !important)
+plusvibeapi.ru##body:has([data-studio-root="true"]):style(overflow: hidden !important)
 
-! 5. Меняем местами: поле ввода — выше, строка выбора модели — ниже
-plusvibeapi.ru#$#div.flex.shrink-0.gap-2.items-end { order: -1 !important; }
-plusvibeapi.ru#$#[data-studio-composer-model-row="true"] { order: 0 !important; }
+! Перестановка: поле ввода выше строки модели
+plusvibeapi.ru##div.flex.shrink-0.gap-2.items-end:style(order: -1 !important)
+plusvibeapi.ru##[data-studio-composer-model-row="true"]:style(order: 0 !important)
 
-! 6. Скрываем placeholder (на всех движках)
-plusvibeapi.ru#$#textarea::placeholder { color: transparent !important; opacity: 0 !important; }
-plusvibeapi.ru#$#textarea::-webkit-input-placeholder { color: transparent !important; opacity: 0 !important; }
-
-! 7. Провайдер :cxb — единственное, что чистым CSS не сделать (нужен #%#)
-plusvibeapi.ru#%#(() => {
-  const T = 'deepseek-v4.1-flash-1017:cxb';
-  const S = 'select[aria-label="Провайдер"]';
-  const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-  const tick = () => {
-    const sel = document.querySelector(S);
-    if (sel && sel.value !== T) {
-      set.call(sel, T);
-      sel.dispatchEvent(new Event('input',  { bubbles: true }));
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  };
-  tick();
-  setInterval(tick, 1000);
-})();
+! Placeholder скрыть
+plusvibeapi.ru##textarea:style(color: transparent !important)
+plusvibeapi.ru##textarea::placeholder:style(color: transparent !important)
+plusvibeapi.ru##textarea::placeholder:style(opacity: 0 !important)
