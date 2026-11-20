@@ -22,15 +22,7 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 192.168.3.14##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
 10.77.77.5##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
 
-! Fallback без :has() — те же части, но привязаны к m-auto-контейнеру
-192.168.3.14##div.m-auto[class*="max-w-[58rem]"] h3#suggestions-heading
-192.168.3.14##div.m-auto[class*="max-w-[58rem]"] [aria-labelledby="suggestions-heading"]
-192.168.3.14##div.m-auto[class*="max-w-[58rem]"] button[aria-label*="Получить информацию"]
-192.168.3.14##div.m-auto[class*="max-w-[58rem]"] > div.mt-2.mb-4
-10.77.77.5##div.m-auto[class*="max-w-[58rem]"] h3#suggestions-heading
-10.77.77.5##div.m-auto[class*="max-w-[58rem]"] [aria-labelledby="suggestions-heading"]
-10.77.77.5##div.m-auto[class*="max-w-[58rem]"] button[aria-label*="Получить информацию"]
-10.77.77.5##div.m-auto[class*="max-w-[58rem]"] > div.mt-2.mb-4
+
 
 
 ! ============================================
