@@ -33,23 +33,16 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 ! ============================================
 ! PlusVibeAPI — Нейростудия (/dashboard/studio)
 ! ============================================
-! PlusVibeAPI — Нейростудия (uBlock Origin)
-
 plusvibeapi.ru##body:has([data-studio-root="true"]) *:not([data-studio-root="true"]):not([data-studio-root="true"] *):not(:has([data-studio-root="true"]))
 plusvibeapi.ru##[data-studio-composer-balance="true"]
-
 ! Padding 0 у main (перебивает .dv2-content и @media)
 plusvibeapi.ru##main.dv2-content:style(padding: 0 !important)
-
 ! Отключаем прокрутку фона
 plusvibeapi.ru##html:has([data-studio-root="true"]):style(overflow: hidden !important)
 plusvibeapi.ru##body:has([data-studio-root="true"]):style(overflow: hidden !important)
-
 ! Перестановка: поле ввода выше строки модели
 plusvibeapi.ru##div.flex.shrink-0.gap-2.items-end:style(order: -1 !important)
 plusvibeapi.ru##[data-studio-composer-model-row="true"]:style(order: 0 !important)
-
 ! Placeholder скрыть
-plusvibeapi.ru##textarea:style(color: transparent !important)
 plusvibeapi.ru##textarea::placeholder:style(color: transparent !important)
 plusvibeapi.ru##textarea::placeholder:style(opacity: 0 !important)
