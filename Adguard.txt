@@ -24,14 +24,19 @@ plusvibeapi.ru##body:has([data-studio-root="true"]) *:not([data-studio-root="tru
 ! 2. Скрываем строку "Доступно: … · бонус …"
 plusvibeapi.ru##[data-studio-composer-balance="true"]
 
-! 3. JS: провайдер :cxb, placeholder, padding 0, отключение прокрутки фона
+! 3. Padding 0 у main (CSS)
+plusvibeapi.ru#$#main.pv-dashboard-content { padding: 0 !important; }
+
+! 4. Отключаем прокрутку фона (CSS)
+plusvibeapi.ru#$#html:has([data-studio-root="true"]), body:has([data-studio-root="true"]) { overflow: hidden !important; }
+
+! 5. JS: провайдер :cxb и удаление placeholder
 plusvibeapi.ru#%#(() => {
   const TARGET = 'deepseek-v4.1-flash-1017:cxb';
   const SELECTOR = 'select[aria-label="Провайдер"]';
   const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
 
   const tick = () => {
-    // (1) Выбор провайдера :cxb
     const sel = document.querySelector(SELECTOR);
     if (sel && sel.value !== TARGET) {
       setter.call(sel, TARGET);
@@ -39,19 +44,8 @@ plusvibeapi.ru#%#(() => {
       sel.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // (2) Убираем placeholder
     const ta = document.querySelector('textarea[placeholder]');
     if (ta) ta.removeAttribute('placeholder');
-
-    // (3) Padding 0 у main
-    const main = document.querySelector('main.pv-dashboard-content');
-    if (main) main.style.setProperty('padding', '0', 'important');
-
-    // (4) Отключаем прокрутку фона
-    if (document.documentElement.style.overflow !== 'hidden') {
-      document.documentElement.style.setProperty('overflow', 'hidden', 'important');
-      document.body.style.setProperty('overflow', 'hidden', 'important');
-    }
   };
 
   tick();
