@@ -14,8 +14,9 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="WheelMobile_r
 ! Скрываем блоки с обложками артистов (VibePage_artistCover)
 music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_artistCover"]
 
-
+! ============================================
 ! Скрываем блоки Open WebUI
+! ============================================
 ! m-auto есть ТОЛЬКО у него; у чат-контейнера (element 1) — нет, у поля ввода (element 2) — mx-auto.
 192.168.3.14##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
 10.77.77.5##div.m-auto[class*="max-w-[58rem]"]:has(h3#suggestions-heading)
@@ -52,3 +53,5 @@ plusvibeapi.ru##[data-studio-composer-model-row="true"]:style(order: 0 !importan
 ! Placeholder скрыть
 plusvibeapi.ru##textarea::placeholder:style(color: transparent !important)
 plusvibeapi.ru##textarea::placeholder:style(opacity: 0 !important)
+! Скрываем кнопки скачивания под ответами
+plusvibeapi.ru##button[title^="Сохранить как"]
