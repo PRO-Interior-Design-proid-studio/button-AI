@@ -14,6 +14,18 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="WheelMobile_r
 ! Скрываем блоки с обложками артистов (VibePage_artistCover)
 music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_artistCover"]
 
+! Скрываем блоки Open WebUI 
+! DOMAIN##div:has(#suggestions-heading):has([aria-label*="Получить информацию"])
+192.168.3.14##div:has(#suggestions-heading):has([aria-label*="Получить информацию"])
+10.77.77.5##div:has(#suggestions-heading):has([aria-label*="Получить информацию"])
+192.168.3.14##h3#suggestions-heading
+192.168.3.14##[aria-labelledby="suggestions-heading"]
+192.168.3.14##div.mt-2.mb-4.text-3xl.flex.items-center.gap-4
+10.77.77.5##h3#suggestions-heading
+10.77.77.5##[aria-labelledby="suggestions-heading"]
+10.77.77.5##div.mt-2.mb-4.text-3xl.flex.items-center.gap-4
+
+
 ! ============================================
 ! PlusVibeAPI — Нейростудия (/dashboard/studio)
 ! ============================================
