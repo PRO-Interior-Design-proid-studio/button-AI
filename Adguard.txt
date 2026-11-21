@@ -58,6 +58,9 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 10.77.77.5##button[aria-label="Прочитать вслух"]
 192.168.3.14##button[id^="speak-button-"]
 10.77.77.5##button[id^="speak-button-"]
+! кнопка «Сохранить» у блоков кода
+192.168.3.14##button.save-code-button
+10.77.77.5##button.save-code-button
 
 ! ============================================
 ! PlusVibeAPI — Нейростудия (/dashboard/studio)
