@@ -35,6 +35,24 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 Или эквивалентно, через id:
 192.168.3.14###chat-input p.is-empty
 10.77.77.5###chat-input p.is-empty
+! Полоса вкладок открытых чатов целиком (включая «+ Новая вкладка» и крестики)
+192.168.3.14##div[data-panel-tab-bar]
+10.77.77.5##div[data-panel-tab-bar]
+! Только кнопка «+ Новая вкладка» (если саму полосу оставляем)
+192.168.3.14##button[aria-label="Новая вкладка"]
+10.77.77.5##button[aria-label="Новая вкладка"]
+! Кнопка голосового ввода
+192.168.3.14###voice-input-button
+10.77.77.5###voice-input-button
+! Кнопка временного чата
+192.168.3.14###temporary-chat-button
+10.77.77.5###temporary-chat-button
+! Кнопка разделения панели (иконка rect 4/4/16/16 + M12 20V4) — у неё нет id/aria-label
+192.168.3.14##button:has(> svg rect[x="4"][y="4"][width="16"][height="16"])
+10.77.77.5##button:has(> svg rect[x="4"][y="4"][width="16"][height="16"])
+! Скрываем самой иконки
+192.168.3.14##svg.size-4\.5
+10.77.77.5##svg.size-4\.5
 
 
 ! ============================================
