@@ -53,7 +53,11 @@ music.yandex.ru, yandex.ru, music.yandex.com, yandex.com##[class*="VibePage_arti
 ! Скрываем самой иконки
 192.168.3.14##svg.size-4\.5
 10.77.77.5##svg.size-4\.5
-
+! Кнопка «Прочитать вслух»
+192.168.3.14##button[aria-label="Прочитать вслух"]
+10.77.77.5##button[aria-label="Прочитать вслух"]
+192.168.3.14##button[id^="speak-button-"]
+10.77.77.5##button[id^="speak-button-"]
 
 ! ============================================
 ! PlusVibeAPI — Нейростудия (/dashboard/studio)
